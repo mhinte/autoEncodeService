@@ -1,20 +1,8 @@
-import os
-import time
-
-#WATCH_FOLDER = "PATCH_TO_WATCH_FOLDER"
-WATCH_FOLDER = "/home/marc/Videos"
-
-def monitor_folder():
-    while True:
-        time.sleep(60 * 60)
-        files = os.listdir(WATCH_FOLDER)
-        for file in files:
-            print(file)
-
+from encoder import process_all_videos
 
 if __name__ == '__main__':
     try:
-        monitor_folder()
+        process_all_videos()
     except Exception as e:
         # log error
         print(e)
