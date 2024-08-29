@@ -15,11 +15,11 @@ def process_all_videos():
     for file in files:
         input_file_path = os.path.join(INPUT_FOLDER, file)
         if os.path.isfile(input_file_path) and input_file_path not in already_processed:
-            logger.info("New file found at {0}; start encoding now...".format(os.path.splitext(input_file_path)[0]))
+            logger.info(f"New file found at {os.path.splitext(input_file_path)[0]}; start encoding now...")
             output_file_path = os.path.join(OUTPUT_FOLDER, os.path.splitext(file)[0] + ".mkv")
             encode_video(input_file_path, output_file_path)
         else:
-            logger.info("Already processed file found in path: {0}".format(os.path.splitext(input_file_path)[0]))
+            logger.info(f"Already processed file found in path: {os.path.splitext(input_file_path)[0]}")
 
 
 def read_processed_files():
