@@ -2,6 +2,8 @@ import logging
 import os
 import subprocess
 
+import pymediainfo
+
 from constants import INPUT_FOLDER, OUTPUT_FOLDER, HANDBRAKE_CLI_PATH, PROCESSED_FILES_PATH
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,22 @@ def write_processed_file(file):
         f.write(f"{file}\n")
 
 
+def get_audio_streams(input_file):
+    media_info = pymediainfo.MediaInfo.parse(input_file)
+    audio_tracks = []
+
+    for track in media_info.tracks:
+        if track.track_type == "Audio":
+            audio_info = {
+                "track_id": track.track_id,
+                "format": track.format,
+                "language": track.language,
+            }
+            audio_tracks.append(audio_info)
+
+    return audio_tracks
+
+
 def encode_video(input_file, output_file):
     """
     Encodes a video file using HandBrakeCLI.
@@ -44,6 +62,11 @@ def encode_video(input_file, output_file):
 
     # Ensure the output directory exists
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    # Create indexes for selecting wanted audio streams
+    audio_streams = get_audio_streams(input_file)
+    indexEn = next((i for i, item in enumerate(audio_streams) if item['language'] == 'en'), -1)
+    indexDe = next((i for i, item in enumerate(audio_streams) if item['language'] == 'de'), -1)
 
     # HandBrake settings for a pal dvd
     command = [
@@ -60,17 +83,15 @@ def encode_video(input_file, output_file):
         '--width', '720',
         '--height', '576',
         '--auto-anamorphic',
-        '--audio-lang-list', 'deu,eng',
-        '--aname', 'Deutsch,English',
-        '--first-audio',
         '--aencoder', 'av_aac',
-        '--audio-copy-mask', 'aac,ac3',
-        '--audio-fallback', 'av_aac',
+        '--audio', f'{str(indexDe + 1)},{str(indexEn + 1)}',
+        '--aname', 'Deutsch,English',
         '--mixdown', 'dpl1',
         '--subtitle-lang-list', 'deu,eng',
-        '--subname', 'Deutsch,English',
         '--first-subtitle',
+        '--subname', 'Deutsch,English',
         '--aq', '5',
+        '--markers',
         '--multi-pass',
         '--turbo',
         '--format', 'av_mkv'
