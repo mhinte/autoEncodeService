@@ -99,11 +99,9 @@ def encode_video(input_file, output_file):
 
     try:
         subprocess.run(command, check=True)
-        pass
+        write_processed_file(input_file)
+        logger.info(f"Successfully encoded {input_file} to {output_file}")
     except subprocess.CalledProcessError as e:
         logger.error(f"An error occurred while encoding {input_file}: {e}")
     except FileNotFoundError:
         logger.warning("HandBrakeCLI is not installed or not found in the system path.")
-    finally:
-        write_processed_file(input_file)
-        logger.info(f"Successfully encoded {input_file} to {output_file}")
