@@ -5,7 +5,7 @@ import os
 
 from src.encoder import process_all_videos
 
-LOG_FOLDER = "logs"
+LOG_FOLDER = "temp/logs"
 LOG_FILE = os.path.join(LOG_FOLDER, "encoder.log")
 
 def init_logger() -> None:
