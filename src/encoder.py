@@ -126,7 +126,7 @@ def encode_video(input_file: str, output_file: str) -> None:
     command = [param for param in command if param]
 
     try:
-        #subprocess.run(command, check=True)
+        subprocess.run(command, check=True)
         write_processed_file(input_file)
         logger.info("Successfully encoded %s to %s", input_file, output_file)
     except subprocess.CalledProcessError as e:
