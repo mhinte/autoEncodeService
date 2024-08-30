@@ -21,5 +21,4 @@ if __name__ == '__main__':
         else:
             process_all_videos()
     except Exception as e:
-        # log error
-        print(e)
+        logger.error(f"An error occurred: {e}")
