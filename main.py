@@ -1,9 +1,10 @@
+"""Module providing the main function for starting the handbrake automation."""
+
 import logging
 import os
 
-from encoder import process_all_videos
+from src.encoder import process_all_videos
 
-# Define log folder and log file
 LOG_FOLDER = "logs"
 LOG_FILE = os.path.join(LOG_FOLDER, "encoder.log")
 
@@ -18,7 +19,7 @@ def init_logger() -> None:
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
             logging.FileHandler(LOG_FILE),
-            logging.StreamHandler()  # Also output to console
+            logging.StreamHandler()
         ]
     )
 
@@ -28,16 +29,16 @@ MONITORING = False
 
 
 def monitor_folder():
+    """
+    Function to start watching a given folder.
+    """
     logger.info("Started monitoring folder...")
     while True:
         process_all_videos()
 
 
 if __name__ == '__main__':
-    try:
-        if MONITORING:
-            monitor_folder()
-        else:
-            process_all_videos()
-    except Exception as e:
-        logger.error(f"An error occurred: {e}")
+    if MONITORING:
+        monitor_folder()
+    else:
+        process_all_videos()
