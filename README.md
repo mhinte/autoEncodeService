@@ -1,4 +1,5 @@
 # Project: autoEncodeService
+[![Pylint](https://github.com/mhinte/autoEncodeService/actions/workflows/pylint.yml/badge.svg)](https://github.com/mhinte/autoEncodeService/actions/workflows/pylint.yml)
 
 A project to automate the encoding of movies.
 
