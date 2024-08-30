@@ -104,3 +104,6 @@ def encode_video(input_file: str, output_file: str) -> None:
         logger.error(f"An error occurred while encoding {input_file}: {e}")
     except FileNotFoundError:
         logger.warning("HandBrakeCLI is not installed or not found in the system path.")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+
