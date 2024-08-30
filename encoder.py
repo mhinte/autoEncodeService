@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+from typing import List, Dict, Set
 
 import pymediainfo
 
@@ -8,8 +9,7 @@ from constants import INPUT_FOLDER, OUTPUT_FOLDER, HANDBRAKE_CLI_PATH, PROCESSED
 
 logger = logging.getLogger(__name__)
 
-
-def process_all_videos():
+def process_all_videos() -> None:
     already_processed = read_processed_files()
     files = os.listdir(INPUT_FOLDER)
     for file in files:
@@ -21,21 +21,18 @@ def process_all_videos():
         else:
             logger.info(f"Already processed file found in path: {os.path.splitext(input_file_path)[0]}")
 
-
-def read_processed_files():
+def read_processed_files() -> Set[str]:
+    processed_files = set()
     if os.path.exists(PROCESSED_FILES_PATH):
         with open(PROCESSED_FILES_PATH, 'r') as f:
-            return set(line.strip() for line in f)
-    else:
-        return set()
+            processed_files = {line.strip() for line in f}
+    return processed_files
 
-
-def write_processed_file(file):
+def write_processed_file(file: str) -> None:
     with open(PROCESSED_FILES_PATH, 'a') as f:
         f.write(f"{file}\n")
 
-
-def get_audio_streams(input_file):
+def get_audio_streams(input_file: str) -> List[Dict[str, str]]:
     media_info = pymediainfo.MediaInfo.parse(input_file)
     audio_tracks = []
 
@@ -50,8 +47,7 @@ def get_audio_streams(input_file):
 
     return audio_tracks
 
-
-def encode_video(input_file, output_file):
+def encode_video(input_file: str, output_file: str) -> None:
     """
     Encodes a video file using HandBrakeCLI.
 
