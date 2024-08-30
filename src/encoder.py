@@ -85,11 +85,11 @@ def encode_video(input_file: str, output_file: str) -> None:
     indices = []
     index_de = next((i for i, item in enumerate(audio_streams) if item['language'] == 'de'), -1)
     if index_de != -1:
-        indices.append(str(index_de))
+        indices.append(str(index_de + 1))
 
     index_en = next((i for i, item in enumerate(audio_streams) if item['language'] == 'en'), -1)
     if index_en != -1:
-        indices.append(str(index_en))
+        indices.append(str(index_en + 1))
 
     audio_command = ','.join(indices)
 
@@ -131,5 +131,5 @@ def encode_video(input_file: str, output_file: str) -> None:
         logger.info("Successfully encoded %s to %s", input_file, output_file)
     except subprocess.CalledProcessError as e:
         logger.error("An error occurred while encoding %s: %s", input_file, e)
-    except FileNotFoundError:
-        logger.warning("HandBrakeCLI is not installed or not found in the system path.")
+    except FileNotFoundError as err:
+        logger.error("File not found: %s", err)
