@@ -61,8 +61,8 @@ def encode_video(input_file: str, output_file: str) -> None:
 
     # Create indexes for selecting wanted audio streams
     audio_streams = get_audio_streams(input_file)
-    indexEn = next((i for i, item in enumerate(audio_streams) if item['language'] == 'en'), -1)
-    indexDe = next((i for i, item in enumerate(audio_streams) if item['language'] == 'de'), -1)
+    index_en = next((i for i, item in enumerate(audio_streams) if item['language'] == 'en'), -1)
+    index_de = next((i for i, item in enumerate(audio_streams) if item['language'] == 'de'), -1)
 
     # HandBrake settings for a pal dvd
     command = [
@@ -80,7 +80,7 @@ def encode_video(input_file: str, output_file: str) -> None:
         '--height', '576',
         '--auto-anamorphic',
         '--aencoder', 'av_aac',
-        '--audio', f'{str(indexDe + 1)},{str(indexEn + 1)}',
+        '--audio', f'{str(index_de + 1)},{str(index_en + 1)}' if index_de != -1 and index_en != -1 else '',
         '--aname', 'Deutsch,English',
         '--mixdown', 'dpl1',
         '--subtitle-lang-list', 'deu,eng',
@@ -92,6 +92,9 @@ def encode_video(input_file: str, output_file: str) -> None:
         '--turbo',
         '--format', 'av_mkv'
     ]
+
+    # Remove empty parameters
+    command = [param for param in command if param]
 
     try:
         subprocess.run(command, check=True)
