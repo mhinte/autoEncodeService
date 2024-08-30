@@ -21,14 +21,14 @@ def process_all_videos() -> None:
     files = os.listdir(INPUT_FOLDER)
     for file in files:
         input_file_path = os.path.join(INPUT_FOLDER, file)
-        if os.path.isfile(input_file_path) and input_file_path not in already_processed:
+        if os.path.isfile(input_file_path) and file not in already_processed:
             logger.info("New file found at %s; start encoding now...",
                         os.path.splitext(input_file_path)[0])
             output_file_path = os.path.join(OUTPUT_FOLDER, os.path.splitext(file)[0] + ".mkv")
             encode_video(input_file_path, output_file_path)
         else:
-            logger.info("Already processed file found in path: %s",
-                        os.path.splitext(input_file_path)[0])
+            logger.info("Already processed file %s in path: %s",
+                        file, os.path.splitext(input_file_path)[0])
 
 
 def read_processed_files() -> Set[str]:
@@ -42,12 +42,12 @@ def read_processed_files() -> Set[str]:
     return processed_files
 
 
-def write_processed_file(file: str) -> None:
+def write_processed_file(file_path: str) -> None:
     """
     Updates the processed files file.
     """
     with open(PROCESSED_FILES_PATH, 'a', encoding="utf-8") as f:
-        f.write(f"{file}\n")
+        f.write(f"{os.path.basename(file_path)}\n")
 
 
 def get_audio_streams(input_file: str) -> List[Dict[str, str]]:
@@ -126,7 +126,7 @@ def encode_video(input_file: str, output_file: str) -> None:
     command = [param for param in command if param]
 
     try:
-        subprocess.run(command, check=True)
+        #subprocess.run(command, check=True)
         write_processed_file(input_file)
         logger.info("Successfully encoded %s to %s", input_file, output_file)
     except subprocess.CalledProcessError as e:
