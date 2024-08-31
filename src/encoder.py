@@ -3,7 +3,7 @@
 import logging
 import os
 import subprocess
-from typing import List, Dict, Set
+from typing import List, Set
 
 import pymediainfo
 
@@ -50,23 +50,32 @@ def write_processed_file(file_path: str) -> None:
         f.write(f"{os.path.basename(file_path)}\n")
 
 
-def get_audio_streams(input_file: str) -> List[Dict[str, str]]:
+def get_audio_indices(input_file: str, languages=None) -> str:
     """
-    Returns a list of all audio streams.
+    Returns a comma-separated string of the indices of the specified language audio streams.
+
+    Args:
+        input_file (str): Path to the input video file.
+        languages (List[str]): List of language codes to search for in the audio streams.
+
+    Returns:
+        str: A string of ordered and comma-separated indices of the specified language audio streams.
     """
-    media_info = pymediainfo.MediaInfo.parse(input_file)
-    audio_tracks = []
+    if languages is None:
+        languages = ['de', 'en']
+    try:
+        media_info = pymediainfo.MediaInfo.parse(input_file)
+        audio_tracks = media_info.audio_tracks
+    except Exception as e:
+        logger.error('Error parsing media info: %s', e)
+        return ""
 
-    for track in media_info.tracks:
-        if track.track_type == "Audio":
-            audio_info = {
-                "track_id": track.track_id,
-                "format": track.format,
-                "language": track.language,
-            }
-            audio_tracks.append(audio_info)
+    indices = [
+        str(i + 1) for lang in languages
+        for i, track in enumerate(audio_tracks) if getattr(track, 'language', None) == lang
+    ]
 
-    return audio_tracks
+    return ','.join(indices)
 
 
 def encode_video(input_file: str, output_file: str) -> None:
@@ -80,18 +89,7 @@ def encode_video(input_file: str, output_file: str) -> None:
 
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
-    audio_streams = get_audio_streams(input_file)
-
-    indices = []
-    index_de = next((i for i, item in enumerate(audio_streams) if item['language'] == 'de'), -1)
-    if index_de != -1:
-        indices.append(str(index_de + 1))
-
-    index_en = next((i for i, item in enumerate(audio_streams) if item['language'] == 'en'), -1)
-    if index_en != -1:
-        indices.append(str(index_en + 1))
-
-    audio_command = ','.join(indices)
+    audio_command = get_audio_indices(input_file)
 
     # HandBrake settings for a pal dvd
     command = [
@@ -112,18 +110,21 @@ def encode_video(input_file: str, output_file: str) -> None:
         '--audio', audio_command,
         '--aname', 'Deutsch,English',
         '--mixdown', 'dpl1',
+        '--aq', '4',
+        '--native-language', 'deu',
+        '--native-dub',
         '--subtitle-lang-list', 'deu,eng',
         '--first-subtitle',
         '--subname', 'Deutsch,English',
-        '--aq', '5',
+        '--subtitle', 'scan',
+        '--subtitle-forced',
+        '--subtitle-burned', 'none',
+        '--subtitle-default', 'none',
         '--markers',
         '--multi-pass',
         '--turbo',
         '--format', 'av_mkv'
     ]
-
-    # Remove empty parameters
-    command = [param for param in command if param]
 
     try:
         subprocess.run(command, check=True)
