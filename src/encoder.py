@@ -50,29 +50,46 @@ def write_processed_file(file_path: str) -> None:
         f.write(f"{os.path.basename(file_path)}\n")
 
 
-def get_audio_indices(input_file: str, languages=None) -> str:
+def get_audio_indices(input_file: str, languages: List[str] = None) -> str:
     """
-    Returns a comma-separated string of the indices of the specified language audio streams.
+    Retrieves indices of audio streams in the specified languages from a media file.
 
     Args:
         input_file (str): Path to the input video file.
-        languages (List[str]): List of language codes to search for in the audio streams.
+        languages (List[str], optional): List of ISO 639-2 language codes to search for in the
+        audio streams. Defaults to ['de', 'en'] if not provided.
 
     Returns:
-        str: A string of ordered and comma-separated indices of the specified language audio streams.
+        str: A comma-separated string of indices of the specified language audio streams,
+            ordered by their appearance.
+            Returns an empty string if no audio streams are found or an error occurs.
+
+    Raises:
+        FileNotFoundError: If the input file does not exist.
+        ValueError: If there is an issue with retrieving or converting track information.
+
+    Example:
+        >>> get_audio_indices('path/to/video.mkv', ['de', 'en'])
+        '1,2'
     """
     if languages is None:
         languages = ['de', 'en']
+
     try:
         media_info = pymediainfo.MediaInfo.parse(input_file)
         audio_tracks = media_info.audio_tracks
-    except Exception as e:
-        logger.error('Error parsing media info: %s', e)
+    except FileNotFoundError:
+        logger.error('Input file not found: %s', input_file)
+        return ""
+    except ValueError as e:
+        logger.error('Value error: %s', e)
         return ""
 
+    # Collect indices of audio tracks matching the specified languages
     indices = [
         str(i + 1) for lang in languages
-        for i, track in enumerate(audio_tracks) if getattr(track, 'language', None) == lang
+        for i, track in enumerate(audio_tracks)
+        if getattr(track, 'language', None) == lang
     ]
 
     return ','.join(indices)
@@ -116,10 +133,10 @@ def encode_video(input_file: str, output_file: str) -> None:
         '--subtitle-lang-list', 'deu,eng',
         '--first-subtitle',
         '--subname', 'Deutsch,English',
-        '--subtitle', 'scan',
+        '--subtitle-burned=none',
+        '--subtitle-default=none',
         '--subtitle-forced',
-        '--subtitle-burned', 'none',
-        '--subtitle-default', 'none',
+        '--subtitle', 'scan',
         '--markers',
         '--multi-pass',
         '--turbo',
