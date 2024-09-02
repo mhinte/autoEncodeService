@@ -95,30 +95,45 @@ def get_audio_indices(input_file: str, languages: List[str] = None) -> str:
     return ','.join(indices)
 
 
-# Consolidated criteria definitions
-CRITERIA = [
+SUB_CRITERIA = [
     {
         "name": "Fremdsprache",
         "priority": 1,
-        "condition": lambda subtitle_info: subtitle_info["language"] == 'de' and subtitle_info["proportion"] < 0.1,
+        "condition": lambda subtitle_info: subtitle_info["language"] == 'de'
+                                           and subtitle_info["proportion"] < 0.1,
         "default": "Yes",
     },
     {
         "name": "Deutsch",
         "priority": 2,
-        "condition": lambda subtitle_info: subtitle_info["language"] == 'de' and subtitle_info["proportion"] < 1,
+        "condition": lambda subtitle_info: subtitle_info["language"] == 'de'
+                                           and subtitle_info["proportion"] < 1,
         "default": "No",
     },
     {
         "name": "English",
         "priority": 3,
-        "condition": lambda subtitle_info: subtitle_info["language"] == 'en' and subtitle_info["proportion"] < 1,
+        "condition": lambda subtitle_info: subtitle_info["language"] == 'en'
+                                           and subtitle_info["proportion"] < 1,
         "default": "No",
     }
 ]
 
 
 def get_subtitles(input_file):
+    """
+    Extracts and filters subtitle tracks from a media file based on predefined criteria.
+
+    Parameters:
+    - input_file (str): Path to the media file.
+
+    Returns:
+    - list of dict: Filtered subtitles with details like track number, language, size, proportion, default status, priority, and criterion name.
+
+    Raises:
+    - FileNotFoundError: Logs error if file is not found.
+    """
+
     try:
         media_info = pymediainfo.MediaInfo.parse(input_file)
         text_tracks = media_info.text_tracks
@@ -127,7 +142,7 @@ def get_subtitles(input_file):
         return ""
 
     subtitle_list = []
-    criteria_status = {criterion["name"]: False for criterion in CRITERIA}
+    criteria_status = {criterion["name"]: False for criterion in SUB_CRITERIA}
 
     for track in text_tracks:
         subtitle_info = {
@@ -138,7 +153,7 @@ def get_subtitles(input_file):
             "default": track.default,
         }
 
-        for criterion in CRITERIA:
+        for criterion in SUB_CRITERIA:
             if criterion["condition"](subtitle_info) and not criteria_status[criterion["name"]]:
                 subtitle_info["default"] = criterion["default"]
                 subtitle_info['priority'] = criterion["priority"]
@@ -149,10 +164,26 @@ def get_subtitles(input_file):
 
     subtitle_list.sort(key=lambda x: x['priority'])
     logger.debug("Using these subtitles for encoding: %s", subtitle_list)
+
     return subtitle_list
 
 
 def add_subtitle_command(command, subtitles):
+    """
+    Adds subtitle-related options to a HandBrake CLI command based on the provided subtitles.
+
+    Parameters:
+    - command (list): The initial list of command-line arguments for HandBrake.
+    - subtitles (list of dict): A list of subtitle dictionaries where each dictionary
+    contains information about a subtitle track.
+      Each dictionary is expected to have the following keys:
+      - 'track_nr' (int): The track number of the subtitle.
+      - 'name' (str): The name of the subtitle.
+
+    Returns:
+    - list: The updated command list with added subtitle options.
+    """
+
     logger.debug("Check for subtitle options to add.")
     if not subtitles:
         logger.debug("No subtitles found, skipping analyse.")
