@@ -22,7 +22,7 @@ def process_all_videos() -> None:
     for file in files:
         input_file_path = os.path.join(INPUT_FOLDER, file)
         if os.path.isfile(input_file_path) and file not in already_processed:
-            logger.info("New file found at %s; start encoding now...",
+            logger.info("New file found at %s.",
                         os.path.splitext(input_file_path)[0])
             output_file_path = os.path.join(OUTPUT_FOLDER, os.path.splitext(file)[0] + ".mkv")
             encode_video(input_file_path, output_file_path)
@@ -94,27 +94,29 @@ def get_audio_indices(input_file: str, languages: List[str] = None) -> str:
 
     return ','.join(indices)
 
+
 # Consolidated criteria definitions
 CRITERIA = [
     {
-        "name": "foreign_audio",
+        "name": "Fremdsprache",
         "priority": 1,
         "condition": lambda subtitle_info: subtitle_info["language"] == 'de' and subtitle_info["proportion"] < 0.1,
         "default": "Yes",
     },
     {
-        "name": "german_subtitles",
+        "name": "Deutsch",
         "priority": 2,
         "condition": lambda subtitle_info: subtitle_info["language"] == 'de' and subtitle_info["proportion"] < 1,
         "default": "No",
     },
     {
-        "name": "english_subtitles",
+        "name": "English",
         "priority": 3,
         "condition": lambda subtitle_info: subtitle_info["language"] == 'en' and subtitle_info["proportion"] < 1,
         "default": "No",
     }
 ]
+
 
 def get_subtitles(input_file):
     try:
@@ -129,31 +131,66 @@ def get_subtitles(input_file):
 
     for track in text_tracks:
         subtitle_info = {
-            "track_id": track.stream_identifier,
+            "track_nr": int(track.stream_identifier) + 1,
             "language": track.language,
-            "format": track.format,
-            "duration": track.duration,
             "stream_size": track.stream_size,
             "proportion": float(track.proportion_of_this_stream) * 1000,
             "default": track.default,
-            "forced": track.forced,
         }
-        print(subtitle_info)
 
-        # Check each criterion
         for criterion in CRITERIA:
             if criterion["condition"](subtitle_info) and not criteria_status[criterion["name"]]:
                 subtitle_info["default"] = criterion["default"]
                 subtitle_info['priority'] = criterion["priority"]
+                subtitle_info['name'] = criterion["name"]
                 subtitle_list.append(subtitle_info)
                 criteria_status[criterion["name"]] = True
-                break  # Exit the loop once a criterion is met
+                break
 
     subtitle_list.sort(key=lambda x: x['priority'])
+    logger.debug("Using these subtitles for encoding: %s", subtitle_list)
     return subtitle_list
 
 
-# No need for add_subtitle_if_not_exist function as it's integrated directly in the loop
+def add_subtitle_command(command, subtitles):
+    logger.debug("Check for subtitle options to add.")
+    if not subtitles:
+        logger.debug("No subtitles found, skipping analyse.")
+        return command
+
+    # Initialize subtitle command list
+    subtitle_command = [
+        '--subtitle-burned=none',
+        '--subtitle-forced=none',
+    ]
+
+    # Variables to collect subtitle information
+    subtitle_tracks = []
+    subtitle_names = []
+
+    # Collect subtitle track info
+    for subtitle in subtitles:
+        # Append track id
+        subtitle_tracks.append(str(subtitle['track_nr']))
+
+        # Append subtitle name
+        subtitle_names.append(subtitle['name'])
+
+    # Add collected subtitle tracks to command
+    subtitle_command.extend(['--subtitle', ','.join(subtitle_tracks)])
+
+    # Add collected subtitle names to command
+    subtitle_command.extend(['--subname', ','.join(subtitle_names)])
+
+    # Always set the first subtitle as the default
+    subtitle_command.extend(['--subtitle-default', str(subtitles[0]['track_nr'])])
+
+    # Extend the original command with the generated subtitle options
+    command.extend(subtitle_command)
+    logger.debug("Added subtitle options: %s", subtitle_command)
+
+    return command
+
 
 def encode_video(input_file: str, output_file: str) -> None:
     """
@@ -176,12 +213,12 @@ def encode_video(input_file: str, output_file: str) -> None:
         '--encoder', 'x265',
         '--encoder-preset', 'medium',
         '--encoder-profile', 'main10',
-        '--quality', '17',
+        '--quality', '17.5',
         '--vfr',
-        '--unsharp-tune', 'fine',
-        '--hqdn3d', 'light',
-        '--width', '720',
-        '--height', '576',
+        '--crop-mode',' auto',
+        '--auto-anamorphic',
+        '--lapsharp=light',
+        '--hqdn3d=light',
         '--auto-anamorphic',
         '--aencoder', 'av_aac',
         '--audio', audio_command,
@@ -189,23 +226,15 @@ def encode_video(input_file: str, output_file: str) -> None:
         '--mixdown', 'dpl1',
         '--aq', '4',
         '--native-language', 'deu',
-        '--native-dub',
-        '--subtitle-lang-list', 'deu,eng',
-        '--first-subtitle',
-        '--subname', 'Deutsch,English',
-        '--subtitle-burned=none',
-        '--subtitle-default=none',
-        '--subtitle-forced',
-        '--subtitle', 'scan',
         '--markers',
-        '--multi-pass',
         '--turbo',
-        '--format', 'av_mkv'
+        '--format', 'av_mkv',
     ]
 
     try:
-        subtitles = get_subtitles(input_file)
-        subprocess.run(command, check=True)
+        extended_command = add_subtitle_command(command, get_subtitles(input_file))
+        logger.info("Starting encoding with command: %s", extended_command)
+        subprocess.run(extended_command, check=True)
         write_processed_file(input_file)
         logger.info("Successfully encoded %s to %s", input_file, output_file)
     except subprocess.CalledProcessError as e:
