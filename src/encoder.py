@@ -94,6 +94,66 @@ def get_audio_indices(input_file: str, languages: List[str] = None) -> str:
 
     return ','.join(indices)
 
+# Consolidated criteria definitions
+CRITERIA = [
+    {
+        "name": "foreign_audio",
+        "priority": 1,
+        "condition": lambda subtitle_info: subtitle_info["language"] == 'de' and subtitle_info["proportion"] < 0.1,
+        "default": "Yes",
+    },
+    {
+        "name": "german_subtitles",
+        "priority": 2,
+        "condition": lambda subtitle_info: subtitle_info["language"] == 'de' and subtitle_info["proportion"] < 1,
+        "default": "No",
+    },
+    {
+        "name": "english_subtitles",
+        "priority": 3,
+        "condition": lambda subtitle_info: subtitle_info["language"] == 'en' and subtitle_info["proportion"] < 1,
+        "default": "No",
+    }
+]
+
+def get_subtitles(input_file):
+    try:
+        media_info = pymediainfo.MediaInfo.parse(input_file)
+        text_tracks = media_info.text_tracks
+    except FileNotFoundError:
+        logger.error('Input file not found: %s', input_file)
+        return ""
+
+    subtitle_list = []
+    criteria_status = {criterion["name"]: False for criterion in CRITERIA}
+
+    for track in text_tracks:
+        subtitle_info = {
+            "track_id": track.stream_identifier,
+            "language": track.language,
+            "format": track.format,
+            "duration": track.duration,
+            "stream_size": track.stream_size,
+            "proportion": float(track.proportion_of_this_stream) * 1000,
+            "default": track.default,
+            "forced": track.forced,
+        }
+        print(subtitle_info)
+
+        # Check each criterion
+        for criterion in CRITERIA:
+            if criterion["condition"](subtitle_info) and not criteria_status[criterion["name"]]:
+                subtitle_info["default"] = criterion["default"]
+                subtitle_info['priority'] = criterion["priority"]
+                subtitle_list.append(subtitle_info)
+                criteria_status[criterion["name"]] = True
+                break  # Exit the loop once a criterion is met
+
+    subtitle_list.sort(key=lambda x: x['priority'])
+    return subtitle_list
+
+
+# No need for add_subtitle_if_not_exist function as it's integrated directly in the loop
 
 def encode_video(input_file: str, output_file: str) -> None:
     """
@@ -144,6 +204,7 @@ def encode_video(input_file: str, output_file: str) -> None:
     ]
 
     try:
+        subtitles = get_subtitles(input_file)
         subprocess.run(command, check=True)
         write_processed_file(input_file)
         logger.info("Successfully encoded %s to %s", input_file, output_file)
