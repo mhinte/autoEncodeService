@@ -128,7 +128,8 @@ def get_subtitles(input_file):
     - input_file (str): Path to the media file.
 
     Returns:
-    - list of dict: Filtered subtitles with details like track number, language, size, proportion, default status, priority, and criterion name.
+    - list of dict: Filtered subtitles with details like track number,
+        language, size, proportion, default status, priority, and criterion name.
 
     Raises:
     - FileNotFoundError: Logs error if file is not found.
