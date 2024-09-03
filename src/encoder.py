@@ -193,7 +193,6 @@ def add_subtitle_command(command, subtitles):
     # Initialize subtitle command list
     subtitle_command = [
         '--subtitle-burned=none',
-        '--subtitle-forced=none',
     ]
 
     # Variables to collect subtitle information
