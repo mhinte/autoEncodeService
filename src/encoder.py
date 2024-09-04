@@ -3,6 +3,7 @@
 import logging
 import os
 import subprocess
+from shutil import copy
 from typing import List, Set
 
 import pymediainfo
@@ -223,6 +224,20 @@ def add_subtitle_command(command, subtitles):
     return command
 
 
+def copy_to_network(output_file):
+    network_path = '/home/dat/mnt/'
+    if not os.path.ismount(network_path):
+        print("not yet, mounting...")
+        os.system("mount " + network_path)
+
+    else:
+        print("mounted")
+
+    print("copying...")
+    copy(output_file, network_path)
+    print("done!")
+
+
 def encode_video(input_file: str, output_file: str) -> None:
     """
     Encodes a video file using HandBrakeCLI.
@@ -267,6 +282,7 @@ def encode_video(input_file: str, output_file: str) -> None:
         logger.info("Starting encoding with command: %s", extended_command)
         subprocess.run(extended_command, check=True)
         write_processed_file(input_file)
+        copy_to_network(output_file)
         logger.info("Successfully encoded %s to %s", input_file, output_file)
     except subprocess.CalledProcessError as e:
         logger.error("An error occurred while encoding %s: %s", input_file, e)
