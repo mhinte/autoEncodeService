@@ -51,23 +51,17 @@ def write_processed_file(file_path: str) -> None:
         f.write(f"{os.path.basename(file_path)}\n")
 
 
-def get_audio_indices(input_file: str, languages: List[str] = None) -> str:
+def get_audio_indices(input_file: str, languages: List[str] = None, first_only: bool = True) -> str:
     """
-    Retrieves indices of audio streams in the specified languages from a media file.
+    Get indices of audio streams matching specified languages in a media file.
 
     Args:
-        input_file (str): Path to the input video file.
-        languages (List[str], optional): List of ISO 639-2 language codes to search for in the
-        audio streams. Defaults to ['de', 'en'] if not provided.
+        input_file (str): Path to the video file.
+        languages (List[str], optional): ISO 639-2 language codes to search for. Defaults to ['de', 'en'].
+        first_only (bool, optional): If True, return only the first match for each language. Defaults to True.
 
     Returns:
-        str: A comma-separated string of indices of the specified language audio streams,
-            ordered by their appearance.
-            Returns an empty string if no audio streams are found or an error occurs.
-
-    Raises:
-        FileNotFoundError: If the input file does not exist.
-        ValueError: If there is an issue with retrieving or converting track information.
+        str: Comma-separated indices of the matching audio streams, or an empty string if none found.
 
     Example:
         >>> get_audio_indices('path/to/video.mkv', ['de', 'en'])
@@ -86,12 +80,22 @@ def get_audio_indices(input_file: str, languages: List[str] = None) -> str:
         logger.error('Value error: %s', e)
         return ""
 
+    if not audio_tracks:
+        logger.warning('No audio tracks found in the media file: %s', input_file)
+        return ""
+
     # Collect indices of audio tracks matching the specified languages
-    indices = [
-        str(i + 1) for lang in languages
-        for i, track in enumerate(audio_tracks)
-        if getattr(track, 'language', None) == lang
-    ]
+    indices = []
+    language_found = {lang: False for lang in languages}
+
+    for i, track in enumerate(audio_tracks):
+        track_lang = getattr(track, 'language', None)
+        if track_lang in languages and not language_found[track_lang]:
+            indices.append(str(i + 1))
+            if first_only:
+                language_found[track_lang] = True
+            if first_only and all(language_found.values()):
+                break
 
     return ','.join(indices)
 
@@ -225,6 +229,11 @@ def add_subtitle_command(command, subtitles):
 
 
 def copy_to_network(output_file):
+    """
+    WIP: basic implementation for copying the final video to a network drive
+
+    NOT YET TESTED
+    """
     network_path = '/home/dat/mnt/'
     if not os.path.ismount(network_path):
         print("not yet, mounting...")
@@ -250,6 +259,7 @@ def encode_video(input_file: str, output_file: str) -> None:
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
     audio_command = get_audio_indices(input_file)
+    print(audio_command)
 
     # HandBrake settings for a pal dvd
     command = [
