@@ -3,10 +3,12 @@
 import logging
 import os
 import subprocess
+import pymediainfo
+import smbclient
+
 from shutil import copy2
 from typing import List, Set
 
-import pymediainfo
 
 from src.helper.constants import (INPUT_FOLDER, OUTPUT_FOLDER,
                                   HANDBRAKE_CLI_PATH, PROCESSED_FILES_PATH, SUBTITLE_CRITERIA)
@@ -208,17 +210,11 @@ def copy_to_network(src_file):
 
     NOT YET TESTED
     """
-    network_path = '/home/dat/mnt/'
-    # if not os.path.ismount(network_path):
-    #     print("not yet, mounting...")
-    #     os.system("mount " + network_path)
-    #
-    # else:
-    #     print("mounted")
+    smb = smbclient.SambaClient(server="SERVER", share="SHARE")
 
-    logger.info("Copying file %s to %s", src_file, network_path)
-    copy2(src_file, network_path)
-    logger.info("Finished copying file %s to %s", src_file, network_path)
+    logger.info("Copying file %s to server", src_file)
+    smb.upload(src_file, "movies")
+    logger.info("Finished copying file %s to server", src_file)
 
 
 def encode_video(input_file: str, output_file: str) -> None:
