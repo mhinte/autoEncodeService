@@ -86,16 +86,19 @@ def get_audio_indices(input_file: str, languages: List[str] = None, first_only: 
 
     # Collect indices of audio tracks matching the specified languages
     indices = []
-    language_found = {lang: False for lang in languages}
 
-    for i, track in enumerate(audio_tracks):
-        track_lang = getattr(track, 'language', None)
-        if track_lang in languages and not language_found[track_lang]:
-            indices.append(str(i + 1))
-            if first_only:
-                language_found[track_lang] = True
-            if first_only and all(language_found.values()):
-                break
+    # Process languages in the order they are specified in the input list
+    for lang in languages:
+        found = False
+        for i, track in enumerate(audio_tracks):
+            track_lang = getattr(track, 'language', None)
+            if track_lang == lang:
+                indices.append(str(i + 1))  # Append the 1-based index
+                if first_only:
+                    found = True
+                    break  # Stop searching after the first match for this language
+        if first_only and found:
+            continue  # Move to the next language if first_only is True
 
     return ','.join(indices)
 
@@ -287,12 +290,12 @@ def encode_video(input_file: str, output_file: str) -> None:
         '--format', 'av_mkv',
     ]
 
+    extended_command = add_subtitle_command(command, get_subtitles(input_file))
     try:
         extended_command = add_subtitle_command(command, get_subtitles(input_file))
         logger.info("Starting encoding with command: %s", extended_command)
         subprocess.run(extended_command, check=True)
         write_processed_file(input_file)
-        copy_to_network(output_file)
         logger.info("Successfully encoded %s to %s", input_file, output_file)
     except subprocess.CalledProcessError as e:
         logger.error("An error occurred while encoding %s: %s", input_file, e)
