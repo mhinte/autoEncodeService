@@ -9,7 +9,7 @@ from typing import List, Set
 import pymediainfo
 
 from src.helper.constants import (INPUT_FOLDER, OUTPUT_FOLDER,
-                                  HANDBRAKE_CLI_PATH, PROCESSED_FILES_PATH)
+                                  HANDBRAKE_CLI_PATH, PROCESSED_FILES_PATH, SUBTITLE_CRITERIA)
 
 logger = logging.getLogger(__name__)
 
@@ -53,19 +53,15 @@ def write_processed_file(file_path: str) -> None:
 
 def get_audio_indices(input_file: str, languages: List[str] = None, first_only: bool = True) -> str:
     """
-    Get indices of audio streams matching specified languages in a media file.
+    Returns indices of audio streams matching specified languages.
 
     Args:
         input_file (str): Path to the video file.
-        languages (List[str], optional): ISO 639-2 language codes to search for. Defaults to ['de', 'en'].
-        first_only (bool, optional): If True, return only the first match for each language. Defaults to True.
+        languages (List[str], optional): Language codes to match. Defaults to ['de', 'en'].
+        first_only (bool, optional): If True, returns only the first match per language.
 
     Returns:
-        str: Comma-separated indices of the matching audio streams, or an empty string if none found.
-
-    Example:
-        >>> get_audio_indices('path/to/video.mkv', ['de', 'en'])
-        '1,2'
+        str: Comma-separated indices of matching audio streams or an empty string if none.
     """
     if languages is None:
         languages = ['de', 'en']
@@ -103,31 +99,6 @@ def get_audio_indices(input_file: str, languages: List[str] = None, first_only: 
     return ','.join(indices)
 
 
-SUB_CRITERIA = [
-    {
-        "name": "Fremdsprache",
-        "priority": 1,
-        "condition": lambda subtitle_info: subtitle_info["language"] == 'de'
-                                           and subtitle_info["proportion"] < 0.1,
-        "default": "Yes",
-    },
-    {
-        "name": "Deutsch",
-        "priority": 2,
-        "condition": lambda subtitle_info: subtitle_info["language"] == 'de'
-                                           and subtitle_info["proportion"] < 1,
-        "default": "No",
-    },
-    {
-        "name": "English",
-        "priority": 3,
-        "condition": lambda subtitle_info: subtitle_info["language"] == 'en'
-                                           and subtitle_info["proportion"] < 1,
-        "default": "No",
-    }
-]
-
-
 def get_subtitles(input_file):
     """
     Extracts and filters subtitle tracks from a media file based on predefined criteria.
@@ -151,7 +122,7 @@ def get_subtitles(input_file):
         return ""
 
     subtitle_list = []
-    criteria_status = {criterion["name"]: False for criterion in SUB_CRITERIA}
+    criteria_status = {criterion["name"]: False for criterion in SUBTITLE_CRITERIA}
 
     for track in text_tracks:
         subtitle_info = {
@@ -162,7 +133,7 @@ def get_subtitles(input_file):
             "default": track.default,
         }
 
-        for criterion in SUB_CRITERIA:
+        for criterion in SUBTITLE_CRITERIA:
             if criterion["condition"](subtitle_info) and not criteria_status[criterion["name"]]:
                 subtitle_info["default"] = criterion["default"]
                 subtitle_info['priority'] = criterion["priority"]
@@ -262,7 +233,6 @@ def encode_video(input_file: str, output_file: str) -> None:
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
     audio_command = get_audio_indices(input_file)
-    print(audio_command)
 
     # HandBrake settings for a pal dvd
     command = [
@@ -274,7 +244,7 @@ def encode_video(input_file: str, output_file: str) -> None:
         '--encoder-profile', 'main10',
         '--quality', '17.5',
         '--vfr',
-        '--crop-mode',' auto',
+        '--crop-mode', ' auto',
         '--auto-anamorphic',
         '--lapsharp=light',
         '--hqdn3d=light',
@@ -292,7 +262,6 @@ def encode_video(input_file: str, output_file: str) -> None:
 
     extended_command = add_subtitle_command(command, get_subtitles(input_file))
     try:
-        extended_command = add_subtitle_command(command, get_subtitles(input_file))
         logger.info("Starting encoding with command: %s", extended_command)
         subprocess.run(extended_command, check=True)
         write_processed_file(input_file)
