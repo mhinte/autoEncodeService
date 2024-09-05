@@ -3,7 +3,7 @@
 import logging
 import os
 import subprocess
-from shutil import copy
+from shutil import copy2
 from typing import List, Set
 
 import pymediainfo
@@ -202,23 +202,23 @@ def add_subtitle_command(command, subtitles):
     return command
 
 
-def copy_to_network(output_file):
+def copy_to_network(src_file):
     """
     WIP: basic implementation for copying the final video to a network drive
 
     NOT YET TESTED
     """
     network_path = '/home/dat/mnt/'
-    if not os.path.ismount(network_path):
-        print("not yet, mounting...")
-        os.system("mount " + network_path)
+    # if not os.path.ismount(network_path):
+    #     print("not yet, mounting...")
+    #     os.system("mount " + network_path)
+    #
+    # else:
+    #     print("mounted")
 
-    else:
-        print("mounted")
-
-    print("copying...")
-    copy(output_file, network_path)
-    print("done!")
+    logger.info("Copying file %s to %s", src_file, network_path)
+    copy2(src_file, network_path)
+    logger.info("Finished copying file %s to %s", src_file, network_path)
 
 
 def encode_video(input_file: str, output_file: str) -> None:
