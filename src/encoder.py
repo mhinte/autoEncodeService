@@ -229,7 +229,6 @@ def encode_video(input_file: str, output_file: str) -> None:
 
     audio_command = get_audio_indices(input_file)
 
-    # HandBrake settings for a pal dvd
     command = [
         HANDBRAKE_CLI_PATH,
         '--input', input_file,
