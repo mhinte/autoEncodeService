@@ -125,6 +125,8 @@ def get_subtitles(input_file):
     subtitle_list = []
     criteria_status = {criterion["name"]: False for criterion in SUBTITLE_CRITERIA}
 
+    #  TODO: Criterion for foreign langugae check needs to based on actual usage, not by proportion
+
     for track in text_tracks:
         subtitle_info = {
             "track_nr": int(track.stream_identifier) + 1,
@@ -149,26 +151,24 @@ def get_subtitles(input_file):
     return subtitle_list
 
 
-def add_subtitle_command(command, subtitles):
+def build_subtitle_command(input_file):
     """
     Adds subtitle-related options to a HandBrake CLI command based on the provided subtitles.
 
     Parameters:
     - command (list): The initial list of command-line arguments for HandBrake.
-    - subtitles (list of dict): A list of subtitle dictionaries where each dictionary
-    contains information about a subtitle track.
-      Each dictionary is expected to have the following keys:
-      - 'track_nr' (int): The track number of the subtitle.
-      - 'name' (str): The name of the subtitle.
+    - input_file (str): Path to the media file.
 
     Returns:
-    - list: The updated command list with added subtitle options.
+    - list: The list with added subtitle options.
     """
+
+    subtitles = get_subtitles(input_file)
 
     logger.debug("Check for subtitle options to add.")
     if not subtitles:
         logger.debug("No subtitles found, skipping analyse.")
-        return command
+        return [""]
 
     # Initialize subtitle command list
     subtitle_command = [
@@ -196,11 +196,9 @@ def add_subtitle_command(command, subtitles):
     # Always set the first subtitle as the default
     subtitle_command.extend(['--subtitle-default', str(subtitles[0]['track_nr'])])
 
-    # Extend the original command with the generated subtitle options
-    command.extend(subtitle_command)
-    logger.debug("Added subtitle options: %s", subtitle_command)
 
-    return command
+    logger.debug("Subtitle command: %s", subtitle_command)
+    return subtitle_command
 
 
 def copy_to_network(src_file):
@@ -257,10 +255,12 @@ def encode_video(input_file: str, output_file: str) -> None:
         '--format', 'av_mkv',
     ]
 
-    extended_command = add_subtitle_command(command, get_subtitles(input_file))
+    subtitle_command = build_subtitle_command(input_file)
+    command.extend(subtitle_command)
+
     try:
-        logger.info("Starting encoding with command: %s", extended_command)
-        subprocess.run(extended_command, check=True)
+        logger.info("Starting encoding with command: %s", command)
+        subprocess.run(command, check=True)
         write_processed_file(input_file)
         logger.info("Successfully encoded %s to %s", input_file, output_file)
     except subprocess.CalledProcessError as e:
