@@ -2,16 +2,14 @@
 
 import logging
 import os
+import shutil
 import subprocess
-import pymediainfo
-import smbclient
-
-from shutil import copy2
 from typing import List, Set
 
+import pymediainfo
 
 from src.helper.constants import (INPUT_FOLDER, OUTPUT_FOLDER,
-                                  HANDBRAKE_CLI_PATH, PROCESSED_FILES_PATH, SUBTITLE_CRITERIA)
+                                  HANDBRAKE_CLI_PATH, PROCESSED_FILES_PATH, SUBTITLE_CRITERIA, NETWORK_FOLDER_PATH)
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +27,7 @@ def process_all_videos() -> None:
                         os.path.splitext(input_file_path)[0])
             output_file_path = os.path.join(OUTPUT_FOLDER, os.path.splitext(file)[0] + ".mkv")
             encode_video(input_file_path, output_file_path)
+            # copy_to_network(output_file_path)
         else:
             logger.info("Already processed file %s in path: %s",
                         file, os.path.splitext(input_file_path)[0])
@@ -208,13 +207,15 @@ def copy_to_network(src_file):
     """
     WIP: basic implementation for copying the final video to a network drive
 
-    NOT YET TESTED
+    works, but is slow
     """
-    smb = smbclient.SambaClient(server="SERVER", share="SHARE")
-
-    logger.info("Copying file %s to server", src_file)
-    smb.upload(src_file, "movies")
-    logger.info("Finished copying file %s to server", src_file)
+    logger.debug("Checking connection to %s", NETWORK_FOLDER_PATH)
+    if os.path.exists(NETWORK_FOLDER_PATH):
+        logger.info("Connection to %s successful, starting upload of %s", NETWORK_FOLDER_PATH, src_file)
+        shutil.copy(src_file, NETWORK_FOLDER_PATH)
+        logger.info("File %s copied to network folder %s successfully!", src_file, NETWORK_FOLDER_PATH)
+    else:
+        logger.info("Connection to %s failed; skipping upload :(", NETWORK_FOLDER_PATH)
 
 
 def encode_video(input_file: str, output_file: str) -> None:
