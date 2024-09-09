@@ -7,6 +7,7 @@ import subprocess
 from typing import List, Set
 
 import pymediainfo
+from smb.SMBConnection import SMBConnection
 
 from src.helper.constants import (INPUT_FOLDER, OUTPUT_FOLDER,
                                   HANDBRAKE_CLI_PATH, PROCESSED_FILES_PATH, SUBTITLE_CRITERIA, NETWORK_FOLDER_PATH)
@@ -196,7 +197,6 @@ def build_subtitle_command(input_file):
     # Always set the first subtitle as the default
     subtitle_command.extend(['--subtitle-default', str(subtitles[0]['track_nr'])])
 
-
     logger.debug("Subtitle command: %s", subtitle_command)
     return subtitle_command
 
@@ -214,6 +214,15 @@ def copy_to_network(src_file):
         logger.info("File %s copied to network folder %s successfully!", src_file, NETWORK_FOLDER_PATH)
     else:
         logger.info("Connection to %s failed; skipping upload :(", NETWORK_FOLDER_PATH)
+
+
+def connect_to_samba():
+    # server_name should match the remote machine name, or else the connection will be rejected
+    conn = SMBConnection(username="", password="", my_name="CLIENT_NAME", remote_name="SERVER_NAME")
+    assert conn.connect("192.168.2.186", 139)
+
+    print(conn.listShares())
+    conn.close()
 
 
 def encode_video(input_file: str, output_file: str) -> None:
