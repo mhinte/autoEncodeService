@@ -246,7 +246,7 @@ def encode_video(input_file: str, output_file: str) -> None:
         '--hqdn3d=light',
         '--auto-anamorphic',
         '--aencoder', 'copy',
-        '--audio-copy-mask', 'ac3,aac,eac3',
+        '--audio-copy-mask', 'ac3,aac,eac3,truehd,dts,dtshd,flac',
         '--audio-fallback', 'av_aac',
         '--audio', audio_command,
         '--aname', 'Deutsch,English',
