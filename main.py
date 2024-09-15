@@ -8,6 +8,7 @@ from src.encoder import process_all_videos
 LOG_FOLDER = "temp/logs"
 LOG_FILE = os.path.join(LOG_FOLDER, "encoder.log")
 
+
 def init_logger() -> None:
     """
     Initializes the logger, ensuring that the log directory exists.
@@ -22,6 +23,7 @@ def init_logger() -> None:
             logging.StreamHandler()
         ]
     )
+
 
 init_logger()
 logger = logging.getLogger(__name__)
