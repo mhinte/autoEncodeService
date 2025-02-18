@@ -19,16 +19,16 @@ def process_all_videos() -> None:
     """
     Process all found videos in the input folder with the given handbrake settings.
     """
-    already_processed = read_processed_files()
     files = os.listdir(INPUT_FOLDER)
     for file in files:
+        already_processed = read_processed_files()
         input_file_path = os.path.join(INPUT_FOLDER, file)
         if os.path.isfile(input_file_path) and file not in already_processed:
             logger.info("New file found at %s.",
                         os.path.splitext(input_file_path)[0])
             output_file_path = os.path.join(OUTPUT_FOLDER, os.path.splitext(file)[0] + ".mkv")
             encode_video(input_file_path, output_file_path)
-            # copy_to_network(output_file_path)
+            copy_to_network(output_file_path)
         else:
             logger.info("Already processed file %s in path: %s",
                         file, os.path.splitext(input_file_path)[0])
@@ -209,20 +209,14 @@ def copy_to_network(src_file):
     """
     logger.debug("Checking connection to %s", NETWORK_FOLDER_PATH)
     if os.path.exists(NETWORK_FOLDER_PATH):
-        logger.info("Connection to %s successful, starting upload of %s", NETWORK_FOLDER_PATH, src_file)
-        shutil.copy(src_file, NETWORK_FOLDER_PATH)
-        logger.info("File %s copied to network folder %s successfully!", src_file, NETWORK_FOLDER_PATH)
+        try:
+            logger.info("Connection to %s successful, starting upload of %s", NETWORK_FOLDER_PATH, src_file)
+            shutil.copy(src_file, NETWORK_FOLDER_PATH)
+            logger.info("File %s copied to network folder %s successfully!", src_file, NETWORK_FOLDER_PATH)
+        except shutil.Error as e:
+            logger.error(e)
     else:
         logger.info("Connection to %s failed; skipping upload :(", NETWORK_FOLDER_PATH)
-
-
-def connect_to_samba():
-    # server_name should match the remote machine name, or else the connection will be rejected
-    conn = SMBConnection(username="", password="", my_name="CLIENT_NAME", remote_name="SERVER_NAME")
-    assert conn.connect("192.168.2.186", 139)
-
-    print(conn.listShares())
-    conn.close()
 
 
 def encode_video(input_file: str, output_file: str) -> None:
@@ -247,7 +241,7 @@ def encode_video(input_file: str, output_file: str) -> None:
         '--encoder-profile', 'main10',
         '--quality', '19',
         '--vfr',
-        '--crop-mode', ' auto',
+        '--crop-mode', 'auto',
         '--auto-anamorphic',
         '--lapsharp=light',
         '--hqdn3d=light',
@@ -258,7 +252,6 @@ def encode_video(input_file: str, output_file: str) -> None:
         '--aname', 'Deutsch,English',
         '--native-language', 'deu',
         '--markers',
-        '--turbo',
         '--format', 'av_mkv',
     ]
 
